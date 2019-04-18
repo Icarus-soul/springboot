@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>站点信息管理系统</title>
+    <style type="text/css">
+        .ftitle {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 5px 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .fitem {
+            margin-bottom: 10px;
+        }
+
+        .fitem label {
+            display: inline-block;
+            text-align: right;
+            width: 80px;
+            font-size: 13px;
+            padding-right: 10px;
+        }
+
+        .fitem input {
+            width: 160px;
+        }
+    </style>
+
+    <link rel="stylesheet" type="text/css" href="http://www.runoob.com/try/jeasyui/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="http://www.jeasyui.net/Public/js/easyui/themes/icon.css">
+    <link rel="stylesheet" type="text/css" href="http://www.runoob.com/try/jeasyui/demo/demo.css">
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.6.1.min.js"></script>
+    <script type="text/javascript" src="http://www.runoob.com/try/jeasyui/jquery.easyui.min.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('#mytable').datagrid({
+                url: 'findPageSite',
+                method: 'get',
+                title: '站点信息表',
+                fitColumns: true,//宽度自适应
+                pagination: true, //启动分页
+                //rownumbers: true, //显示行号
+                striped: true, //
+                autoSave: true,//自动保存
+                toolbar: [{
+                    iconCls: 'icon-add',
+                    text: "新增",
+                    //class: "easyui-linkbutton",
+                    handler: function () {
+                        $("#fm").form('clear');
+                        $('#win').dialog('open', {
+                            title: "新增站点",
+                            iconCls: 'icon-add',                 //弹出框图标
+                            modal: true
+                        });
+                    }
+                }, '-', {
+                    iconCls: 'icon-edit',
+                    text: "修改",
+                    handler: function () {
+                        var selectedRow = $("#mytable").datagrid("getSelected");
+                        if (selectedRow) {
+                            $("#fm").form('load', selectedRow);
+                            $('#win').dialog("open", {
+                                title: "修改站点",
+                                iconCls: 'icon-edit',               //弹出框图标
+                                modal: true
+                            });
+                            $("#idhide").attr("style", "display:block");
+                        } else {
+                            $.messager.show({
+                                title: '提示',
+                                msg: "请选择要修改的数据!",
+                                timeout: 1500,
+                                showType: 'fade',
+                                style: {
+                                    align: 'center'
+                                }
+                            });
+                        }
+                    }
+                }, '-', {
+                    iconCls: 'icon-delete',
+                    text: "删除",
+                    handler: function () {
+                        var arr = $('#mytable').datagrid("getSelections");
+                        if (!arr.length) {
+                            return alert("请选择要删除的数据");
+                        }
+                        $.messager.confirm('确认', '您确定想要删除该记录吗？', function (r) {
+                            if (r) {
+                                var colsno = "";
+                                $.each(arr, function (n, value) {
+                                    colsno = colsno + value.id + ",";
+                                })
+                                colsno = (colsno ? colsno.substring(0, colsno.length - 1) : "");
+                                $.ajax({
+                                    type: 'post',
+                                    data: {
+                                        _method: "deleteSite",
+                                        id: colsno
+                                    },
+                                    url: "deleteSite",
+                                    success: function (result) {
+                                        if (result.code == 1) {
+                                            $.messager.show({
+                                                title: '删除状态',
+                                                msg: result.message,
+                                                timeout: 1500,
+                                                showType: 'fade',
+                                                style: {
+                                                    align: 'center'
+                                                }
+                                            });
+                                        } else {
+                                            $.messager.show({
+                                                title: '删除状态',
+                                                msg: '删除成功，消息将在1秒后关闭！',
+                                                timeout: 1000,
+                                                showType: 'fade',
+                                                style: {
+                                                    align: 'center'
+                                                }
+                                            });
+                                            $('#win').window("close");
+                                            $('#mytable').datagrid('reload');
+
+                                        }
+                                    }
+                                })
+                            }
+                        });
+                    }
+                }, '-', {
+                    iconCls: 'icon-reload',
+                    text: "刷新",
+                    handler: function () {
+                        $('#mytable').datagrid('reload');
+                    }
+                }, '-', {
+                    iconCls: 'icon-search',
+                    text: "查询",
+                    handler: function () {
+                        $('#mytable').datagrid('load', {
+                            sitename: $("#sitename").val()
+                        });
+                    }
+                }, '-', {
+                    text: "<input class='easyui-searchbox' id='sitename' placeholder='请输入站点名称' />"
+                }],
+                columns: [
+                    [
+                        {field: 'id', title: '编号', width: 60, sortable: true},
+                        {field: 'sitename', title: '站点名称', width: 180},
+                        {field: 'companyname', title: '分公司', align: 'center', width: 100},
+                        {field: 'lng', title: '经度', align: 'center', width: 150},
+                        {field: 'lat', title: '纬度', width: 150},
+                        {field: 'addr', title: '详细地址', width: 200},
+                        {field: 'state', title: '状态', width: 60}
+                    ]
+                ]
+            });
+
+            var p = $('#mytable').datagrid("getPager");
+            $(p).pagination({
+                pageSize: 10, //每页默认10条
+                pageList: [5, 10, 20, 30, 40, 50], //可选择的每页显示多少条
+                beforePageText: '当前页  ', //页面数字前的汉字提示
+                afterPageText: ' 总 {pages}'  //总页数
+                // displayMsg: "当前{from} - {to} 条  共 {total} 条记录", //当前1 - 10 条记录 共 21 条
+            });
+        });
+
+        function Modify() {
+            $("#idhide").attr("style", "display:none");//隐藏员工编号栏
+            $('#fm').form('submit', {
+                url: 'updateSite',
+                success: function (r) {
+                    r = JSON.parse(r);
+                    if (r.code == 1) {
+                        $.messager.show({
+                            title: '状态',
+                            msg: r.message,
+                            timeout: 1000,
+                            showType: 'fade',
+                            style: {
+                                align: 'center'
+                            }
+                        });
+                    } else {
+                        $.messager.show({
+                            title: '状态',
+                            msg: '操作成功，消息将在1秒后关闭！',
+                            timeout: 1000,
+                            showType: 'fade',
+                            style: {
+                                align: 'center'
+                            }
+                        });
+                        $('#win').window("close");
+                        $('#mytable').datagrid('reload');
+                    }
+                }
+            });
+        }
+
+        function clos() {
+            $("#idhide").attr("style", "display:none");//隐藏员工编号栏
+            javascript:$('#win').dialog('close');
+        }
+    </script>
+</head>
+<body>
+
+<table id="mytable"></table>
+
+<div id="win" class="easyui-dialog" title="新增站点" style="width: 400px; padding: 10px 20px;"
+     closed="true" buttons="#dlg-buttons">          <!-- 弹出框包括2部分一部分是上面的文本还有一部分是下面的两个按钮 -->
+
+    <form id="fm" method="post" style="margin-top: 20px; margin-left: 20px;">
+        <div class="fitem" id="idhide" style="display:none">
+            <label>编号:</label>
+            <input name="id" class="easyui-textbox" readonly/>
+        </div>
+
+        <div class="fitem">
+            <label>站点名称:</label>
+            <input name="sitename" class="easyui-textbox"/>
+        </div>
+        <div class="fitem">
+            <label>分公司:</label>
+            <input name="companyname" class="easyui-textbox"/>
+        </div>
+
+        <div class="fitem">
+            <label>经度:</label>
+            <input name="lng" class="easyui-textbox"/>
+        </div>
+
+        <div class="fitem">
+            <label>纬度:</label>
+            <input name="lat" class="easyui-textbox"/>
+        </div>
+
+        <div class="fitem">
+            <label>详细地址:</label>
+            <input name="addr" class="easyui-date"/>
+        </div>
+
+        <div class="fitem">
+            <label>状态:</label>
+            <input name="state" class="easyui-textbox"/>
+        </div>
+
+        <!--  直接写提交取消的事件不需要在js中绑定  -->
+        <div id="dlg-buttons" style="display: block">
+            <a id="confirm" href="javascript:void(0)" class="easyui-linkbutton c6" iconcls="icon-ok" onclick="Modify()"
+               style="width: 90px">提交</a>
+            <a href="javascript:void(0)" class="easyui-linkbutton" iconcls="icon-cancel" onclick="clos()"
+               style="width: 90px">取消</a>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>
